@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="卡片管家">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23007AFF%22/><text x=%2250%22 y=%2265%22 font-size=%2250%22 fill=%22white%22 text-anchor=%22middle%22 font-family=%22Arial, sans-serif%22>💳</text></svg>">
+    
+    <title>卡片管家</title>
+    <style>
+        /* 保持 V13 的所有绝赞 UI 设计 */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; display: flex; justify-content: center; /* 适配苹果刘海屏底部安全区 */ padding-bottom: env(safe-area-inset-bottom); }
+        .app-container { width: 100%; max-width: 400px; background-color: #ffffff; min-height: 100vh; position: relative; overflow-x: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
+        /* 适配苹果刘海屏顶部状态栏 */
+        .header { background-color: #007AFF; color: white; padding: 16px; padding-top: calc(16px + env(safe-area-inset-top)); text-align: center; font-size: 17px; font-weight: 600; position: relative; z-index: 10; }
+        .header-btn, .header-btn-left { position: absolute; bottom: 16px; font-size: 14px; cursor: pointer; font-weight: normal; }
+        .header-btn { right: 16px; } .header-btn-left { left: 16px; }
+        
+        .section { padding: 15px 16px; border-bottom: 6px solid #f0f2f5; }
+        .section-title { font-size: 13px; font-weight: 600; color: #8e8e93; margin-bottom: 12px; text-transform: uppercase; }
+        
+        select, input { width: 100%; padding: 12px; border: 1px solid #e5e5ea; border-radius: 10px; box-sizing: border-box; font-size: 15px; background-color: #fff; -webkit-appearance: none; }
+        input:focus, select:focus { outline: none; border-color: #007AFF; }
+        input[readonly] { background-color: #f0f0f5; color: #8e8e93; border: 1px dashed #d1d1d6; }
+
+        .compact-grid { display: grid; grid-template-columns: 1.2fr 0.9fr 0.9fr; gap: 8px; background-color: #f9f9f9; padding: 12px; border-radius: 12px; }
+        .monthly-grid { display: grid; grid-template-columns: 0.8fr 1.1fr 1.1fr; gap: 8px; margin-bottom: 10px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+        .compact-group label { display: block; font-size: 11px; color: #8e8e93; margin-bottom: 4px; text-align: center; }
+        .compact-group input, .compact-group select { text-align: center; padding: 10px 4px; font-weight: 500; font-size: 14px; }
+
+        .dashboard-card { background: linear-gradient(135deg, #e1f5fe 0%, #b3e5fc 100%); border-radius: 14px; padding: 16px; margin-top: 8px; }
+        .dash-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
+        .dash-label { font-size: 14px; color: #1c1c1e; }
+        .dash-value { font-size: 18px; font-weight: 600; }
+        .text-red { color: #FF3B30; } .text-green { color: #34C759; }
+
+        .global-card { background: linear-gradient(135deg, #2c3e50 0%, #000000 100%); border-radius: 16px; padding: 24px 20px; color: white; margin-bottom: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+        .global-title { font-size: 12px; color: #a1a1aa; margin-bottom: 6px; }
+        .global-amount { font-size: 32px; font-weight: bold; margin-bottom: 20px; }
+        .global-sub { display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px; }
+        .global-sub-item { display: flex; flex-direction: column; }
+        .global-sub-val { font-size: 16px; font-weight: 600; margin-top: 4px; }
+        
+        .bank-card-list { display: flex; flex-direction: column; gap: 12px; }
+        .bank-card-item { background: #fff; border: 1px solid #e5e5ea; border-radius: 14px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; }
+        .bank-card-item:active { transform: scale(0.98); background: #f9f9f9; }
+        .bc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .bc-name { font-size: 16px; font-weight: 600; color: #1c1c1e; }
+        .bc-arrow { color: #c7c7cc; font-weight: bold; font-size: 18px;}
+        .bc-data { display: flex; justify-content: space-between; }
+        .bc-data-item { display: flex; flex-direction: column; }
+        .bc-data-lbl { font-size: 11px; color: #8e8e93; }
+        .bc-data-val { font-size: 15px; font-weight: 600; margin-top: 4px; }
+
+        .btn-primary { background-color: #007AFF; color: white; border: none; padding: 14px; width: 100%; border-radius: 12px; font-weight: 600; font-size: 16px; margin-top: 12px; cursor: pointer; transition: 0.2s;}
+        .btn-primary:active { opacity: 0.8; }
+        .btn-edit-mode { background-color: #FF9500; } 
+        .btn-secondary { background-color: #e5e5ea; color: #333; border: none; padding: 14px; width: 40%; border-radius: 12px; font-weight: 600; font-size: 16px; margin-top: 12px; cursor: pointer; }
+        .btn-add-new { background-color: #fff; color: #007AFF; border: 1px dashed #007AFF; padding: 14px; width: 100%; border-radius: 12px; font-weight: 600; font-size: 15px; cursor: pointer; text-align: center; margin-top: 8px; transition: 0.2s; }
+
+        input[type="date"] { position: relative; color: #000; }
+        input[type="date"]::-webkit-calendar-picker-indicator { position: absolute; right: 8px; top: 12px; opacity: 0; width: 100%; height: 100%; cursor: pointer;}
+        .rate-badge { display: inline-block; background-color: #e5f0ff; color: #007AFF; font-size: 12px; padding: 4px 8px; border-radius: 6px; font-weight: bold; margin-top: 8px; transition: all 0.3s; }
+
+        .swipe-item { position: relative; border-bottom: 1px solid #f0f0f5; background-color: #f4f4f4; }
+        .swipe-item:last-child { border-bottom: none; }
+        .h-actions { position: absolute; right: 0; top: 0; height: 100%; display: flex; z-index: 1; }
+        .action-btn { display: flex; align-items: center; justify-content: center; width: 65px; color: white; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .action-btn.edit { background-color: #FF9500; } .action-btn.delete { background-color: #FF3B30; }
+        .h-content { padding: 16px; background-color: #fff; position: relative; z-index: 2; transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); cursor: pointer; }
+        .swipe-item.swiped-left .h-content { transform: translateX(-130px); }
+
+        .history-list { list-style: none; padding: 0; margin: 0; overflow-x: hidden; }
+        .history-list .h-content { padding: 16px 0; } 
+        .h-main { display: flex; justify-content: space-between; align-items: center; padding: 0 4px; }
+        .h-sub { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: #8e8e93; padding: 0 4px;}
+        .h-date { font-size: 13px; color: #8e8e93; }
+        .h-type { font-weight: 600; font-size: 16px; color: #1c1c1e; margin-top: 2px;}
+        .h-amount { font-weight: 600; font-size: 17px; }
+        
+        .page-panel { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: #f0f2f5; overflow-y: auto; -webkit-overflow-scrolling: touch;}
+        .page-panel.active { display: block; }
+
+        .setting-list { background: #fff; border-radius: 12px; margin-bottom: 15px; overflow: hidden; }
+        .setting-info { display: flex; flex-direction: column; gap: 6px;}
+        .setting-title { font-weight: 600; font-size: 16px; color: #1c1c1e; }
+        .setting-desc { font-size: 13px; color: #8e8e93; }
+        .setting-ext { font-size: 12px; color: #a1a1aa; margin-top: 2px; }
+        .add-box-vertical { background: #fff; padding: 16px; border-radius: 12px; border: 1px dashed #c7c7cc; display: none; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    
+    <div id="pageHome" class="page-panel active">
+        <div class="header">
+            💳 资产管家
+            <span class="header-btn" onclick="openPage('pageSettings')">⚙️ 设置</span>
+        </div>
+        
+        <div class="section" style="border-bottom: none;">
+            <div class="global-card">
+                <div class="global-title">所有卡片总未还 (¥)</div>
+                <div class="global-amount text-red" id="globalUnpaid">0.00</div>
+                <div class="global-sub">
+                    <div class="global-sub-item">
+                        <span class="global-title">总信用额度</span>
+                        <span class="global-sub-val" id="globalTotalLimit">0.00</span>
+                    </div>
+                    <div class="global-sub-item" style="text-align: right;">
+                        <span class="global-title">总实时可用</span>
+                        <span class="global-sub-val text-green" id="globalRealtimeLimit">0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-title" style="margin-top: 24px;">我的卡包</div>
+            <div class="bank-card-list" id="homeBankList"></div>
+            
+            <div style="text-align: center; margin-top: 24px;">
+                <span style="font-size: 13px; color: #007AFF; cursor: pointer; font-weight: 500;" onclick="openPage('pageSettings')">+ 去设置中心配置新卡片</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="pageCardDetail" class="page-panel">
+        <div class="header">
+            <span class="header-btn-left" onclick="openPage('pageHome')">◀ 首页</span>
+            <span id="detailBankName">交通银行</span>
+        </div>
+
+        <div class="section" style="padding-top: 15px;">
+            <div class="compact-grid">
+                <div class="compact-group">
+                    <label>总额度(¥)</label>
+                    <input type="number" id="baseTotalLimit" readonly>
+                </div>
+                <div class="compact-group">
+                    <label>账单日</label>
+                    <input type="number" id="baseStatementDate" readonly>
+                </div>
+                <div class="compact-group">
+                    <label>还款日</label>
+                    <input type="number" id="baseRepayDate" readonly>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">本期账单概览</div>
+            <div class="monthly-grid">
+                <div class="compact-group">
+                    <label>月份</label>
+                    <select id="currentMonth" onchange="saveMonthlyInfo()">
+                        <option value="1">1</option><option value="2">2</option>
+                        <option value="3">3</option><option value="4">4</option>
+                        <option value="5">5</option><option value="6">6</option>
+                        <option value="7">7</option><option value="8">8</option>
+                        <option value="9">9</option><option value="10">10</option>
+                        <option value="11">11</option><option value="12">12</option>
+                    </select>
+                </div>
+                <div class="compact-group">
+                    <label>本期账单(¥)</label>
+                    <input type="number" id="currentBill" placeholder="0" oninput="saveMonthlyInfo()">
+                </div>
+                <div class="compact-group">
+                    <label>期初额度(¥)</label>
+                    <input type="number" id="currentStartLimit" placeholder="0" oninput="saveMonthlyInfo()">
+                </div>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="dash-row">
+                    <span class="dash-label">该卡未还：</span>
+                    <span class="dash-value text-red" id="lblUnpaid">¥ 0.00</span>
+                </div>
+                <div class="dash-row" style="margin-top: 3px; border-top: 1px dashed rgba(0,122,255,0.2); padding-top: 8px;">
+                    <span class="dash-label">该卡可用：</span>
+                    <span class="dash-value text-green" id="lblRealtimeLimit">¥ 0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" id="recordFormSection">
+            <div class="section-title" style="display: flex; justify-content: space-between;">
+                <span id="formTitle">✍️ 记一笔</span>
+                <span id="liveRate" class="rate-badge" style="display: none;">实时费率: 0.0000</span>
+            </div>
+            
+            <div class="monthly-grid" style="grid-template-columns: 1fr 0.8fr 1.2fr;">
+                <input type="date" id="recDate">
+                <select id="recType" onchange="toggleFields()">
+                    <option value="刷卡">刷卡</option>
+                    <option value="还款">还款</option>
+                </select>
+                <input type="number" id="recAmount" placeholder="总金额¥" oninput="calcLiveRate()">
+            </div>
+            
+            <div class="grid-2" id="advancedFields">
+                <select id="recMerchant"></select>
+                <input type="text" id="recNote" placeholder="说明 (选填)" style="display: none;">
+                <input type="number" id="recReturn" placeholder="实际回款¥ (选填)" oninput="calcLiveRate()">
+                <input type="number" id="recFee" placeholder="手续费¥ (选填)" oninput="calcLiveRate()">
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-primary" id="btnSubmitRecord" onclick="submitRecord()">+ 确认记账</button>
+                <button class="btn-secondary" id="btnCancelEditMain" style="display: none;" onclick="cancelEdit()">取消</button>
+            </div>
+        </div>
+
+        <div class="section" style="border-bottom: none;">
+            <div class="section-title" style="display: flex; justify-content: space-between;">
+                <span>该卡本月明细</span>
+                <span style="font-size: 11px; font-weight: normal; color: #a1a1aa;">👈 滑动修改或删除</span>
+            </div>
+            <ul class="history-list" id="recordList"></ul>
+            <div id="emptyTip" style="display: none; text-align: center; color: #a1a1aa; padding: 20px; font-size: 13px;">暂无明细流水</div>
+        </div>
+    </div>
+
+    <div id="pageSettings" class="page-panel">
+        <div class="header">
+            <span class="header-btn-left" onclick="openPage('pageHome')">◀ 返回大盘</span>
+            ⚙️ 系统设置
+        </div>
+        
+        <div class="section">
+            <div class="section-title" style="display: flex; justify-content: space-between;">
+                <span>💳 银行卡片管理</span>
+                <span style="font-size: 11px; font-weight: normal; color: #a1a1aa;">👈 滑动管理</span>
+            </div>
+            <div class="setting-list" id="bankSettingsList"></div>
+            
+            <button class="btn-add-new" id="btnShowAddBank" onclick="showAddBankForm()">+ 新增银行卡片</button>
+            
+            <div class="add-box-vertical" id="addBankFormContainer">
+                <input type="text" id="newBankName" placeholder="卡片名称 (必填，如: 招商银行)" style="font-weight: bold;">
+                <div style="display:flex; gap:8px; margin-top:10px;">
+                    <input type="number" id="newBankLimit" placeholder="总额度 (必填)">
+                    <input type="number" id="newBankState" placeholder="账单日 (必填)">
+                    <input type="number" id="newBankRepay" placeholder="还款日 (必填)">
+                </div>
+                
+                <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #e5e5ea;">
+                    <div style="font-size: 12px; color: #a1a1aa; margin-bottom: 8px;">附加信息（选填）</div>
+                    <input type="text" id="newBankCardNum" placeholder="卡片号码 (如: 尾号8821)">
+                    <input type="text" id="newBankBranch" placeholder="开户行 (如: 高新支行)" style="margin-top:10px;">
+                    <input type="text" id="newBankNote" placeholder="备注 (如: 用于绑定支付)" style="margin-top:10px;">
+                </div>
+
+                <div style="display:flex; gap:10px; margin-top: 16px;">
+                    <button class="btn-primary" id="btnBankSubmit" onclick="saveBank()" style="margin-top: 0;">+ 保存卡片</button>
+                    <button class="btn-secondary" style="display: block; margin-top: 0;" onclick="cancelBankEdit()">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" style="border-bottom: none; padding-bottom: 40px;">
+            <div class="section-title" style="display: flex; justify-content: space-between;">
+                <span>🏪 常用商户管理</span>
+                <span style="font-size: 11px; font-weight: normal; color: #a1a1aa;">👈 滑动管理</span>
+            </div>
+            <div class="setting-list" id="merchantSettingsList"></div>
+            
+            <button class="btn-add-new" id="btnShowAddMerchant" onclick="showAddMerchantForm()">+ 新增常用商户</button>
+            <div class="add-box-vertical" id="addMerchantFormContainer">
+                <input type="text" id="newMerchantName" placeholder="商户名称 (如: 星巴克)">
+                <input type="text" id="newMerchantNote" placeholder="备注说明 (如: 详细地址、电话等)" style="margin-top:10px;">
+                <div style="display:flex; gap:10px; margin-top: 16px;">
+                    <button class="btn-primary" id="btnMerchantSubmit" onclick="saveMerchant()" style="margin-top: 0;">+ 保存商户</button>
+                    <button class="btn-secondary" style="display: block; margin-top: 0;" onclick="cancelMerchantEdit()">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ================== V14 核心数据引擎 (localStorage持久化) ==================
+    const defaultSysConfig = { 
+        merchants: [ { name: "数码店-泰", note: "科技城一楼A区" }, { name: "家居馆-恒", note: "家具广场三楼" } ] 
+    };
+    const defaultDB = {
+        "交通银行": { 
+            baseInfo: { limit: 5000, statementDay: 5, repayDay: 25, cardNumber: "8821", branch: "软件园支行", note: "主刷日常消费" },
+            monthlyInfo: { month: "3", billAmount: 4200, startingLimit: 800 },
+            records: [ { fullDate: "2026-03-25", date: "3.25", type: "刷卡", amount: 500, merchant: "数码店-泰", actualReturn: 496, fee: 3, rate: 0.0020 } ] 
+        },
+        "华夏银行": { 
+            baseInfo: { limit: 10000, statementDay: 1, repayDay: 20, cardNumber: "", branch: "", note: "" },
+            monthlyInfo: { month: "3", billAmount: 8000, startingLimit: 2000 },
+            records: [ { fullDate: "2026-03-26", date: "3.26", type: "还款", amount: 2000, merchant: "无说明", actualReturn: 0, fee: 0, rate: 0 } ] 
+        }
+    };
+
+    // 如果手机本地有缓存，读取缓存；如果没有，使用默认模板
+    let sysConfig = JSON.parse(localStorage.getItem('cardAppConfig')) || defaultSysConfig;
+    let db = JSON.parse(localStorage.getItem('cardAppDB')) || defaultDB;
+
+    // 数据持久化保存方法
+    function saveToLocal() {
+        localStorage.setItem('cardAppConfig', JSON.stringify(sysConfig));
+        localStorage.setItem('cardAppDB', JSON.stringify(db));
+    }
+
+    let curBank = "";
+    let editingIndex = -1; 
+    let editingBankName = "";
+    let editingMerchantIndex = -1;
+
+    window.onload = function() {
+        renderMerchantOptions();
+        openPage('pageHome'); 
+        
+        // 为日期框默认填入今天
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        document.getElementById('recDate').value = `${yyyy}-${mm}-${dd}`;
+    };
+
+    // ================== 全局滑动交互引擎 ==================
+    let touchStartX = 0; let touchStartY = 0; let isScrolling = false;
+    function handleTouchStart(e) { 
+        touchStartX = e.changedTouches[0].screenX; 
+        touchStartY = e.changedTouches[0].screenY;
+        isScrolling = false;
+    }
+    function handleTouchMove(e) {
+        let touchEndY = e.changedTouches[0].screenY;
+        if (Math.abs(touchEndY - touchStartY) > 10) isScrolling = true; // 判断是否是上下滚动页面
+    }
+    function handleTouchEnd(e, el) {
+        if (isScrolling) return; // 如果在滚动页面，不触发滑出菜单
+        let touchEndX = e.changedTouches[0].screenX;
+        if (touchStartX - touchEndX > 30) { closeAllSwipes(); el.parentElement.classList.add('swiped-left'); } 
+        else if (touchEndX - touchStartX > 30) { el.parentElement.classList.remove('swiped-left'); }
+    }
+    function toggleSwipeAction(el) {
+        const isOpened = el.parentElement.classList.contains('swiped-left');
+        closeAllSwipes();
+        if (!isOpened) el.parentElement.classList.add('swiped-left');
+    }
+    function closeAllSwipes() { document.querySelectorAll('.swipe-item').forEach(item => { item.classList.remove('swiped-left'); }); }
+
+    // ================== 页面路由控制 ==================
+    function openPage(pageId) {
+        document.querySelectorAll('.page-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        window.scrollTo(0,0); // 切换页面时回到顶部
+
+        if (pageId === 'pageHome') {
+            closeAllSwipes();
+            renderHomeDashboard();
+        } else if (pageId === 'pageSettings') {
+            closeAllSwipes();
+            renderBankSettings();
+            renderMerchantSettings();
+            cancelBankEdit();
+            cancelMerchantEdit();
+        }
+    }
+
+    function goToCardDetail(bankName) {
+        curBank = bankName;
+        document.getElementById('detailBankName').innerText = bankName;
+        const bData = db[curBank];
+        document.getElementById('baseTotalLimit').value = bData.baseInfo.limit;
+        document.getElementById('baseStatementDate').value = bData.baseInfo.statementDay;
+        document.getElementById('baseRepayDate').value = bData.baseInfo.repayDay;
+        document.getElementById('currentMonth').value = bData.monthlyInfo.month || "3";
+        document.getElementById('currentBill').value = bData.monthlyInfo.billAmount;
+        document.getElementById('currentStartLimit').value = bData.monthlyInfo.startingLimit;
+
+        cancelEdit(); calculateDash(); renderList(); toggleFields();
+        openPage('pageCardDetail');
+    }
+
+    // ================== 首页看板计算与渲染 ==================
+    function calcCardFinance(bankName) {
+        const bData = db[bankName];
+        const currentBill = parseFloat(bData.monthlyInfo.billAmount) || 0;
+        const currentStartLimit = parseFloat(bData.monthlyInfo.startingLimit) || 0;
+        const totalLimit = parseFloat(bData.baseInfo.limit) || 0;
+
+        let sumSwipe = 0; let sumRepay = 0;
+        bData.records.forEach(r => {
+            if(r.type === '刷卡') sumSwipe += r.amount;
+            if(r.type === '还款') sumRepay += r.amount;
+        });
+
+        let unpaid = currentBill - sumRepay; if(unpaid < 0) unpaid = 0; 
+        let realtimeLimit = currentStartLimit - sumSwipe + sumRepay;
+        return { totalLimit, unpaid, realtimeLimit };
+    }
+
+    function renderHomeDashboard() {
+        let globalTotalLimit = 0; let globalUnpaid = 0; let globalRealtimeLimit = 0;
+        const listEl = document.getElementById('homeBankList'); listEl.innerHTML = "";
+        const banks = Object.keys(db);
+
+        if (banks.length === 0) {
+            listEl.innerHTML = `<div style="text-align:center; padding: 30px; color:#8e8e93; font-size:14px;">暂无卡片，请去设置中心添加</div>`;
+        } else {
+            banks.forEach(bank => {
+                const finance = calcCardFinance(bank); const bInfo = db[bank].baseInfo;
+                globalTotalLimit += finance.totalLimit; globalUnpaid += finance.unpaid; globalRealtimeLimit += finance.realtimeLimit;
+                
+                let bankSubName = "";
+                if (bInfo.cardNumber) bankSubName += `尾号${bInfo.cardNumber} `;
+                if (bInfo.branch) bankSubName += `(${bInfo.branch})`;
+
+                const div = document.createElement('div'); div.className = 'bank-card-item'; div.onclick = () => goToCardDetail(bank);
+                div.innerHTML = `
+                    <div class="bc-header">
+                        <div>
+                            <span class="bc-name">${bank}</span>
+                            ${bankSubName ? `<span style="font-size:12px; color:#8e8e93; margin-left:6px;">${bankSubName}</span>` : ''}
+                        </div>
+                        <span class="bc-arrow">></span>
+                    </div>
+                    <div class="bc-data">
+                        <div class="bc-data-item"><span class="bc-data-lbl">未还账单</span><span class="bc-data-val text-red">¥${finance.unpaid.toFixed(2)}</span></div>
+                        <div class="bc-data-item" style="text-align: right;"><span class="bc-data-lbl">剩余可用额度</span><span class="bc-data-val text-green">¥${finance.realtimeLimit.toFixed(2)}</span></div>
+                    </div>
+                `;
+                listEl.appendChild(div);
+            });
+        }
+
+        document.getElementById('globalUnpaid').innerText = globalUnpaid.toFixed(2);
+        document.getElementById('globalTotalLimit').innerText = globalTotalLimit.toFixed(2);
+        document.getElementById('globalRealtimeLimit').innerText = globalRealtimeLimit.toFixed(2);
+    }
+
+    // ================== 记账核心业务 ==================
+    function renderMerchantOptions() {
+        const selectEl = document.getElementById('recMerchant');
+        selectEl.innerHTML = '<option value="">-- 选择商户(可选) --</option>';
+        sysConfig.merchants.forEach(m => {
+            const opt = document.createElement('option'); opt.value = m.name; opt.innerText = m.name;
+            selectEl.appendChild(opt);
+        });
+    }
+
+    function saveMonthlyInfo() {
+        if(!curBank) return; const bData = db[curBank];
+        bData.monthlyInfo.month = document.getElementById('currentMonth').value;
+        bData.monthlyInfo.billAmount = document.getElementById('currentBill').value;
+        bData.monthlyInfo.startingLimit = document.getElementById('currentStartLimit').value;
+        calculateDash(); 
+        saveToLocal(); // 数据发生变动，永久保存本地
+    }
+
+    function toggleFields() {
+        const type = document.getElementById('recType').value;
+        if(type === '还款') {
+            document.getElementById('recMerchant').style.display = 'none'; document.getElementById('recNote').style.display = 'block';
+            document.getElementById('recReturn').placeholder = "无需填回款";
+        } else {
+            document.getElementById('recMerchant').style.display = 'block'; document.getElementById('recNote').style.display = 'none';
+            document.getElementById('recReturn').placeholder = "实际回款¥ (选填)";
+        }
+        calcLiveRate();
+    }
+
+    function calcLiveRate() {
+        const amount = parseFloat(document.getElementById('recAmount').value) || 0;
+        const actualReturn = parseFloat(document.getElementById('recReturn').value) || 0;
+        const fee = parseFloat(document.getElementById('recFee').value) || 0;
+        const rateBadge = document.getElementById('liveRate');
+        if (amount > 0) {
+            const rate = (amount - actualReturn - fee) / amount;
+            rateBadge.style.display = 'inline-block'; rateBadge.innerText = `当前费率: ${rate.toFixed(4)}`;
+            if (rate > 0.01 && rate < 0.5) { rateBadge.style.backgroundColor = '#fff0f0'; rateBadge.style.color = '#FF3B30'; } 
+            else { rateBadge.style.backgroundColor = '#e5f0ff'; rateBadge.style.color = '#007AFF'; }
+        } else { rateBadge.style.display = 'none'; }
+    }
+
+    function calculateDash() {
+        if(!curBank) return; const finance = calcCardFinance(curBank);
+        document.getElementById('lblUnpaid').innerText = "¥ " + finance.unpaid.toFixed(2); document.getElementById('lblRealtimeLimit').innerText = "¥ " + finance.realtimeLimit.toFixed(2);
+    }
+
+    function submitRecord() {
+        const dateInput = document.getElementById('recDate').value; const type = document.getElementById('recType').value;
+        const amount = parseFloat(document.getElementById('recAmount').value);
+        let merchantInfo = type === '刷卡' ? (document.getElementById('recMerchant').value || "未选商户") : (document.getElementById('recNote').value || "无说明");
+        const actualReturn = parseFloat(document.getElementById('recReturn').value) || 0; const fee = parseFloat(document.getElementById('recFee').value) || 0;
+
+        if(!dateInput || isNaN(amount) || amount <= 0) { alert("请完整填写日期和金额！"); return; }
+        const dateObj = new Date(dateInput); const formattedDate = (dateObj.getMonth() + 1) + "." + dateObj.getDate();
+        const rate = (amount - actualReturn - fee) / amount;
+        const recordObj = { fullDate: dateInput, date: formattedDate, type, amount, merchant: merchantInfo, actualReturn, fee, rate };
+
+        if (editingIndex > -1) { db[curBank].records[editingIndex] = recordObj; cancelEdit(); } 
+        else {
+            db[curBank].records.unshift(recordObj);
+            document.getElementById('recAmount').value = ""; document.getElementById('recMerchant').value = "";
+            document.getElementById('recNote').value = ""; document.getElementById('recReturn').value = "";
+            document.getElementById('recFee').value = ""; calcLiveRate();
+        }
+        calculateDash(); renderList();    
+        saveToLocal(); // 数据发生变动，永久保存本地
+    }
+
+    function editRecord(index) {
+        closeAllSwipes(); 
+        const r = db[curBank].records[index]; editingIndex = index;
+        document.getElementById('recDate').value = r.fullDate; document.getElementById('recType').value = r.type;
+        document.getElementById('recAmount').value = r.amount; document.getElementById('recReturn').value = r.actualReturn || "";
+        document.getElementById('recFee').value = r.fee || "";
+
+        toggleFields(); 
+        if (r.type === '刷卡') {
+            const exists = sysConfig.merchants.some(m => m.name === r.merchant);
+            document.getElementById('recMerchant').value = exists ? r.merchant : "";
+        } else { document.getElementById('recNote').value = r.merchant !== "无说明" ? r.merchant : ""; }
+        calcLiveRate();
+
+        document.getElementById('formTitle').innerText = "✏️ 修改流水";
+        const btnSubmit = document.getElementById('btnSubmitRecord');
+        btnSubmit.innerText = "💾 保存修改"; btnSubmit.classList.add('btn-edit-mode');
+        document.getElementById('btnCancelEditMain').style.display = 'block';
+        document.getElementById('recordFormSection').scrollIntoView({behavior: 'smooth', block: 'center'});
+    }
+
+    function cancelEdit() {
+        editingIndex = -1;
+        document.getElementById('recAmount').value = ""; document.getElementById('recMerchant').value = "";
+        document.getElementById('recNote').value = ""; document.getElementById('recReturn').value = "";
+        document.getElementById('recFee').value = ""; calcLiveRate();
+
+        document.getElementById('formTitle').innerText = "✍️ 记一笔";
+        const btnSubmit = document.getElementById('btnSubmitRecord');
+        btnSubmit.innerText = "+ 确认记账"; btnSubmit.classList.remove('btn-edit-mode');
+        document.getElementById('btnCancelEditMain').style.display = 'none';
+    }
+
+    function deleteRecord(index) {
+        closeAllSwipes();
+        if(confirm("确定要删除这条账单记录吗？")) {
+            if (editingIndex === index) cancelEdit(); 
+            db[curBank].records.splice(index, 1);
+            calculateDash(); renderList(); 
+            saveToLocal(); // 持久化
+        }
+    }
+
+    function renderList() {
+        const listEl = document.getElementById('recordList'); listEl.innerHTML = ""; 
+        const emptyTip = document.getElementById('emptyTip');
+        
+        if (db[curBank].records.length === 0) {
+            emptyTip.style.display = 'block';
+        } else {
+            emptyTip.style.display = 'none';
+            db[curBank].records.forEach((r, index) => {
+                const li = document.createElement('li'); 
+                li.className = 'swipe-item'; 
+                const isRepay = r.type === "还款";
+                let subInfo = `${r.merchant}`;
+                if (r.fee > 0) subInfo += ` | 手费:¥${r.fee}`;
+                if (r.actualReturn > 0) subInfo += ` | 回款:¥${r.actualReturn}`;
+                if (r.rate !== 1 && r.rate !== 0) subInfo += ` | 费率:${r.rate.toFixed(4)}`;
+
+                li.innerHTML = `
+                    <div class="h-actions">
+                        <div class="action-btn edit" onclick="editRecord(${index})">修改</div>
+                        <div class="action-btn delete" onclick="deleteRecord(${index})">删除</div>
+                    </div>
+                    <div class="h-content" onclick="toggleSwipeAction(this)" ontouchstart="handleTouchStart(event)" ontouchmove="handleTouchMove(event)" ontouchend="handleTouchEnd(event, this)">
+                        <div class="h-main">
+                            <div><div class="h-date">${r.date}</div><div class="h-type">${r.type}</div></div>
+                            <div class="h-amount ${isRepay ? "text-green" : "text-red"}">${isRepay ? "+" : "-"} ¥${r.amount.toFixed(2)}</div>
+                        </div>
+                        <div class="h-sub">${subInfo}</div>
+                    </div>
+                `;
+                listEl.appendChild(li);
+            });
+        }
+    }
+
+    // ================== 设置页面管理 ==================
+    function showAddBankForm() {
+        closeAllSwipes(); editingBankName = ""; 
+        document.getElementById('newBankName').value = ""; document.getElementById('newBankLimit').value = "";
+        document.getElementById('newBankState').value = ""; document.getElementById('newBankRepay').value = "";
+        document.getElementById('newBankCardNum').value = ""; document.getElementById('newBankBranch').value = ""; document.getElementById('newBankNote').value = "";
+        
+        document.getElementById('btnShowAddBank').style.display = 'none'; document.getElementById('addBankFormContainer').style.display = 'block';
+        const btn = document.getElementById('btnBankSubmit'); btn.innerText = "+ 保存卡片"; btn.classList.remove('btn-edit-mode');
+    }
+    
+    function renderBankSettings() {
+        const listEl = document.getElementById('bankSettingsList'); listEl.innerHTML = "";
+        Object.keys(db).forEach((bank) => {
+            const b = db[bank].baseInfo; const div = document.createElement('div'); div.className = 'swipe-item'; 
+            let extInfo = "";
+            if (b.cardNumber) extInfo += `卡号: ${b.cardNumber} `; if (b.branch) extInfo += `| 支行: ${b.branch} `; if (b.note) extInfo += `<br>备注: ${b.note}`;
+
+            div.innerHTML = `
+                <div class="h-actions">
+                    <div class="action-btn edit" onclick="editBank('${bank}')">修改</div>
+                    <div class="action-btn delete" onclick="deleteBank('${bank}')">删除</div>
+                </div>
+                <div class="h-content" onclick="toggleSwipeAction(this)" ontouchstart="handleTouchStart(event)" ontouchmove="handleTouchMove(event)" ontouchend="handleTouchEnd(event, this)">
+                    <div class="setting-info">
+                        <span class="setting-title">${bank}</span>
+                        <span class="setting-desc">额度:¥${b.limit} | 账单日:${b.statementDay} | 还款日:${b.repayDay}</span>
+                        ${extInfo ? `<span class="setting-ext">${extInfo}</span>` : ''}
+                    </div>
+                </div>
+            `; 
+            listEl.appendChild(div);
+        });
+    }
+
+    function saveBank() {
+        const name = document.getElementById('newBankName').value.trim(); const limit = document.getElementById('newBankLimit').value;
+        const state = document.getElementById('newBankState').value; const repay = document.getElementById('newBankRepay').value;
+        const cardNumber = document.getElementById('newBankCardNum').value.trim(); const branch = document.getElementById('newBankBranch').value.trim(); const note = document.getElementById('newBankNote').value.trim();
+
+        if(!name) { alert("银行名称不能为空！"); return; }
+        if(!limit || !state || !repay) { alert("请填满必填信息(额度、账单日、还款日)！"); return; }
+
+        if (editingBankName) {
+            if (name !== editingBankName && db[name]) { alert("该银行名已存在！"); return; }
+            if (name !== editingBankName) { db[name] = db[editingBankName]; delete db[editingBankName]; }
+            db[name].baseInfo = { limit, statementDay: state, repayDay: repay, cardNumber, branch, note };
+        } else {
+            if(db[name]) { alert("该银行已存在！"); return; }
+            db[name] = { baseInfo: { limit, statementDay: state, repayDay: repay, cardNumber, branch, note }, monthlyInfo: { month: "3", billAmount: "", startingLimit: "" }, records: [] };
+        }
+        cancelBankEdit(); renderBankSettings(); saveToLocal(); 
+    }
+
+    function editBank(bank) {
+        closeAllSwipes(); showAddBankForm(); editingBankName = bank; 
+        document.getElementById('newBankName').value = bank; document.getElementById('newBankLimit').value = db[bank].baseInfo.limit; 
+        document.getElementById('newBankState').value = db[bank].baseInfo.statementDay; document.getElementById('newBankRepay').value = db[bank].baseInfo.repayDay;
+        document.getElementById('newBankCardNum').value = db[bank].baseInfo.cardNumber || ""; document.getElementById('newBankBranch').value = db[bank].baseInfo.branch || ""; document.getElementById('newBankNote').value = db[bank].baseInfo.note || "";
+        const btn = document.getElementById('btnBankSubmit'); btn.innerText = "💾 保存修改"; btn.classList.add('btn-edit-mode');
+    }
+
+    function cancelBankEdit() {
+        editingBankName = ""; document.getElementById('btnShowAddBank').style.display = 'block'; document.getElementById('addBankFormContainer').style.display = 'none';
+    }
+
+    function deleteBank(bank) {
+        closeAllSwipes();
+        if(confirm(`确定删除【${bank}】吗？`)) {
+            if(editingBankName === bank) cancelBankEdit(); delete db[bank]; renderBankSettings(); saveToLocal(); 
+        }
+    }
+
+    function showAddMerchantForm() {
+        closeAllSwipes(); editingMerchantIndex = -1; 
+        document.getElementById('newMerchantName').value = ""; document.getElementById('newMerchantNote').value = "";
+        document.getElementById('btnShowAddMerchant').style.display = 'none'; document.getElementById('addMerchantFormContainer').style.display = 'block';
+        const btn = document.getElementById('btnMerchantSubmit'); btn.innerText = "+ 保存商户"; btn.classList.remove('btn-edit-mode');
+    }
+    function renderMerchantSettings() {
+        const listEl = document.getElementById('merchantSettingsList'); listEl.innerHTML = "";
+        sysConfig.merchants.forEach((m, index) => {
+            const div = document.createElement('div'); div.className = 'swipe-item';
+            div.innerHTML = `
+                <div class="h-actions">
+                    <div class="action-btn edit" onclick="editMerchant(${index})">修改</div>
+                    <div class="action-btn delete" onclick="deleteMerchant(${index})">删除</div>
+                </div>
+                <div class="h-content" onclick="toggleSwipeAction(this)" ontouchstart="handleTouchStart(event)" ontouchmove="handleTouchMove(event)" ontouchend="handleTouchEnd(event, this)">
+                    <div class="setting-info"><span class="setting-title">${m.name}</span><span class="setting-desc">备注: ${m.note || "无"}</span></div>
+                </div>
+            `;
+            listEl.appendChild(div);
+        });
+    }
+    function saveMerchant() {
+        const name = document.getElementById('newMerchantName').value.trim(); const note = document.getElementById('newMerchantNote').value.trim();
+        if(!name) { alert("商户名不能为空！"); return; }
+        if (editingMerchantIndex > -1) { sysConfig.merchants[editingMerchantIndex] = { name, note }; } 
+        else { if(sysConfig.merchants.some(m => m.name === name)) { alert("该商户已存在！"); return; } sysConfig.merchants.push({ name, note }); }
+        cancelMerchantEdit(); renderMerchantSettings(); renderMerchantOptions(); saveToLocal(); 
+    }
+    function editMerchant(index) {
+        closeAllSwipes(); showAddMerchantForm(); editingMerchantIndex = index; const m = sysConfig.merchants[index];
+        document.getElementById('newMerchantName').value = m.name; document.getElementById('newMerchantNote').value = m.note;
+        const btn = document.getElementById('btnMerchantSubmit'); btn.innerText = "💾 保存修改"; btn.classList.add('btn-edit-mode');
+    }
+    function cancelMerchantEdit() {
+        editingMerchantIndex = -1; document.getElementById('btnShowAddMerchant').style.display = 'block'; document.getElementById('addMerchantFormContainer').style.display = 'none';
+    }
+    function deleteMerchant(index) {
+        closeAllSwipes();
+        if(confirm("确定删除这个商户吗？")) { if(editingMerchantIndex === index) cancelMerchantEdit(); sysConfig.merchants.splice(index, 1); renderMerchantSettings(); renderMerchantOptions(); saveToLocal(); }
+    }
+</script>
+
+</body>
+</html>
